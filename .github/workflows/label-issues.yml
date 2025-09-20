@@ -1,4 +1,4 @@
-name: Label issues
+name: Smart Issue Labeling
 
 on:
   issues:
@@ -12,9 +12,36 @@ jobs:
     permissions:
       issues: write
     steps:
-      - run: gh issue edit "$NUMBER" --add-label "$LABELS"
+      # Paso 1: Etiquetas por defecto
+      - name: Add default labels
+        run: gh issue edit "$NUMBER" --add-label "$LABELS"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
-          LABELS: triage
+          LABELS: triage,needs-review,enhancement
+
+      # Paso 2: Etiquetado condicional basado en título
+      - name: Add bug label for bug reports
+        if: contains(github.event.issue.title, 'bug')
+        run: gh issue edit "$NUMBER" --add-label "bug"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+
+      - name: Add feature label for feature requests
+        if: contains(github.event.issue.title, 'feature')
+        run: gh issue edit "$NUMBER" --add-label "enhancement"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+
+      - name: Add question label for help requests
+        if: contains(github.event.issue.title, 'help')
+        run: gh issue edit "$NUMBER" --add-label "question"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
