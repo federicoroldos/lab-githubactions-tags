@@ -12,15 +12,28 @@ jobs:
     permissions:
       issues: write
     steps:
-      # Etiqueta base obligatoria
-      - name: Add triage label
-        run: gh issue edit "$NUMBER" --add-label "triage"
+      # Paso 1: Logging inicial
+      - name: Logging start
+        run: |
+          echo "Processing issue #$NUMBER"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
 
-      # Etiquetado condicional según palabras clave en el título
+      # Paso 2: Etiqueta base obligatoria con manejo de errores
+      - name: Add triage label with error handling
+        run: |
+          if ! gh issue edit "$NUMBER" --add-label "triage"; then
+            echo "Failed to add triage label to issue #$NUMBER"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+
+      # Paso 3: Etiquetado condicional según palabras clave en el título
       - name: Add bug label
         if: contains(github.event.issue.title, 'bug')
         run: gh issue edit "$NUMBER" --add-label "bug"
@@ -40,6 +53,51 @@ jobs:
       - name: Add question label
         if: contains(github.event.issue.title, 'help') || contains(github.event.issue.title, 'question')
         run: gh issue edit "$NUMBER" --add-label "question"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+
+      # Paso 4: Comentario automático de bienvenida
+      - name: Add welcome comment
+        run: |
+          gh issue comment "$NUMBER" --body "¡Gracias por reportar este issue! 
+          Ha sido etiquetado automáticamente para revisión inicial. 
+          Un miembro del equipo lo revisará pronto."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+
+      # Paso 5: Etiquetado por autor externo
+      - name: Label issues from external contributors
+        if: github.event.issue.author_association == 'NONE'
+        run: gh issue edit "$NUMBER" --add-label "external-contribution"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+
+      # Paso 6: Etiquetado basado en plantillas de issue
+      - name: Label based on issue template
+        run: |
+          if [[ "$BODY" == *"## Bug Report"* ]]; then
+            gh issue edit "$NUMBER" --add-label "bug,triage"
+          elif [[ "$BODY" == *"## Feature Request"* ]]; then
+            gh issue edit "$NUMBER" --add-label "enhancement,triage"
+          else
+            gh issue edit "$NUMBER" --add-label "triage"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          BODY: ${{ github.event.issue.body }}
+
+      # Paso 7: Logging final
+      - name: Logging end
+        run: |
+          echo "Labels added successfully to issue #$NUMBER"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
