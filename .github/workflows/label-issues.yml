@@ -12,7 +12,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      # Paso 1: Logging inicial
+      # Logging inicial
       - name: Logging start
         run: |
           echo "Processing issue #$NUMBER"
@@ -21,11 +21,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
 
-      # Paso 2: Etiqueta base obligatoria con manejo de errores
-      - name: Add triage label with error handling
+      # Etiquetas base obligatorias con manejo de errores
+      - name: Add base labels with error handling
         run: |
-          if ! gh issue edit "$NUMBER" --add-label "triage"; then
-            echo "Failed to add triage label to issue #$NUMBER"
+          if ! gh issue edit "$NUMBER" --add-label "triage,needs-review,enhancement"; then
+            echo "Failed to add base labels to issue #$NUMBER"
             exit 1
           fi
         env:
@@ -33,7 +33,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
 
-      # Paso 3: Etiquetado condicional según palabras clave en el título
+      # Etiquetado condicional según palabras clave en el título
       - name: Add bug label
         if: contains(github.event.issue.title, 'bug')
         run: gh issue edit "$NUMBER" --add-label "bug"
@@ -58,7 +58,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
 
-      # Paso 4: Comentario automático de bienvenida
+      # Comentario automático de bienvenida
       - name: Add welcome comment
         run: |
           gh issue comment "$NUMBER" --body "¡Gracias por reportar este issue! 
@@ -69,7 +69,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
 
-      # Paso 5: Etiquetado por autor externo
+      # Etiquetado por autor externo
       - name: Label issues from external contributors
         if: github.event.issue.author_association == 'NONE'
         run: gh issue edit "$NUMBER" --add-label "external-contribution"
@@ -78,15 +78,15 @@ jobs:
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
 
-      # Paso 6: Etiquetado basado en plantillas de issue
+      # Etiquetado basado en plantillas de issue
       - name: Label based on issue template
         run: |
           if [[ "$BODY" == *"## Bug Report"* ]]; then
-            gh issue edit "$NUMBER" --add-label "bug,triage"
+            gh issue edit "$NUMBER" --add-label "bug,triage,needs-review,enhancement"
           elif [[ "$BODY" == *"## Feature Request"* ]]; then
-            gh issue edit "$NUMBER" --add-label "enhancement,triage"
+            gh issue edit "$NUMBER" --add-label "enhancement,triage,needs-review"
           else
-            gh issue edit "$NUMBER" --add-label "triage"
+            gh issue edit "$NUMBER" --add-label "triage,needs-review,enhancement"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,7 +94,7 @@ jobs:
           NUMBER: ${{ github.event.issue.number }}
           BODY: ${{ github.event.issue.body }}
 
-      # Paso 7: Logging final
+      # Logging final
       - name: Logging end
         run: |
           echo "Labels added successfully to issue #$NUMBER"
