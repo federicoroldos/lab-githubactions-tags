@@ -12,7 +12,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      # Paso 1: Etiquetas por defecto
+      # Etiquetas por defecto
       - name: Add default labels
         run: gh issue edit "$NUMBER" --add-label "$LABELS"
         env:
@@ -21,7 +21,7 @@ jobs:
           NUMBER: ${{ github.event.issue.number }}
           LABELS: triage,needs-review,enhancement
 
-      # Paso 2: Etiquetado condicional basado en título
+      # Etiquetado condicional basado en título
       - name: Add bug label for bug reports
         if: contains(github.event.issue.title, 'bug')
         run: gh issue edit "$NUMBER" --add-label "bug"
